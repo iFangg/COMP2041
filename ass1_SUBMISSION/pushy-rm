@@ -1,0 +1,35 @@
+#!/bin/dash
+
+if ! [ -e ".pushy" ]; then
+    echo "pushy-rm: error: pushy repository directory .pushy not found"
+    exit 1
+fi
+
+for args in "$@"
+do
+    if echo "$args" | grep -q -E '^\-\-' && { [ "$args" != "--force" ] && [ "$args" != "--cached" ]; }; then
+        echo "usage: pushy-rm [--force] [--cached] <filenames>"
+        exit 1
+    fi
+done
+
+status="normal"
+while echo "$1" | grep -q -E "^\-\-";
+do
+    if [ "$status" = "normal" ]; then
+        status="$1"
+    elif [ "$status" != "$1" ]; then
+        status="--fcached"
+    fi
+    shift 1
+done
+if pushy-rm_check "$status" "$@" | grep -E "pushy-rm\: error";  then
+    exit 1
+fi
+
+if [ "$status" = "--cached" ] || [ "$status" = "--fcached" ]; then
+    pushy-index_rm "$@"
+else
+    pushy-index_rm "$@"
+    pushy-cwd_rm "$@"
+fi

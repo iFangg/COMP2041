@@ -1,0 +1,105 @@
+#!/bin/dash
+
+if ! [ -e ".pushy" ]; then
+    echo "pushy-commit: error: pushy repository directory .pushy not found"
+    exit 1
+fi
+
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ] ; then
+    echo "usage: pushy-commit [-a] -m commit-message"
+    exit 1
+fi
+
+if [ "$#" -eq 2 ] && [ "$1" != -m ]; then
+    echo "usage: pushy-commit [-a] -m commit-message"
+    exit 1
+fi
+
+if [ "$#" -eq 3 ] && { [ "$1" != "-a" ] || [ "$2" != "-m" ]; };  then
+    echo "usage: pushy-commit [-a] -m commit-message"
+    exit 1
+fi
+
+if ! [ -e ".pushy/.commits" ]; then
+    mkdir ".pushy/.commits"
+fi
+
+
+if [ -z "$(ls -A .pushy/.index)" ]; then
+    echo "nothing to commit"
+    exit 1
+fi
+
+branch="$(find ".pushy/.branches/.curr/" | sed -E "s/.pushy\/.branches\/.curr\/?//" | grep -E "[a-zA-Z]" | sed -E "s/(.*)\/.*$/\1/" | head -1)"
+
+if ! [ -f ".pushy/.commits/commits.txt" ]; then
+    touch ".pushy/.commits/commits.txt"
+fi
+
+if [ "$1" = "-a" ]; then
+    for file in *
+    do
+        if [ -f ".pushy/$file" ] || [ -f ".pushy/.index/$file" ]; then
+            pushy-add "$file"
+        fi
+    done
+fi
+
+if ! find ".pushy/.index" | sed -E "s/^\.pushy\/\.index\/?//" | grep -q -E "^[^.]" && ! grep -q -E "^aD" ".pushy/.index/.log"; then
+    echo "nothing to commit"
+    exit 0
+fi
+
+commit_num="$(wc -l < ".pushy/.commits/.commit_log")"
+mkdir ".pushy/.commits/$commit_num"
+
+remaining=$(mktemp)
+while IFS= read -r line
+do
+    file="$(echo "$line" | sed -E "s/.*\- //")"
+    if echo "$line" | grep -q -E "^aDel"; then
+        rm ".pushy/$file"
+        continue
+    elif echo "$line" | grep -q -E "^aDin"; then
+        continue
+    else
+        echo "$line" >> "$remaining"
+    fi
+done < ".pushy/.index/.log"
+
+if find ".pushy" | sed -E "s/^\.pushy\/?//" | grep -q -E "^[^.]"; then
+    for file in .pushy/*;
+    do
+        name="$(echo "$file" | sed -E "s/\.pushy\///")"
+        if ! [ -f ".pushy/.index/$name" ] && [ -f ".pushy/.index/.tracking/$name" ]; then
+            cp "$name" ".pushy/.commits/$commit_num"
+        fi
+    done
+fi
+
+if find ".pushy/.index" | sed -E "s/^\.pushy\/\.index\/?//" | grep -q -E "^[^.]"; then
+    for file in .pushy/.index/*;
+    do
+        cp "$file" ".pushy/.commits/$commit_num"
+        cp "$file" ".pushy/.index/.tracking"
+        cp "$file" ".pushy/.branches/.curr/$branch"
+        mv "$file" ".pushy"
+    done
+fi
+
+msg="$2"
+if [ "$#" -eq 3 ]; then
+    msg="$3"
+fi
+
+if [ "$commit_num" -eq 0 ]; then
+    echo "$commit_num $msg" > ".pushy/.commits/.commit_log"
+else
+    sed -i "1s/^/$commit_num $msg\n/" ".pushy/.commits/.commit_log"
+fi
+
+mv "$remaining" ".pushy/.index/.log"
+echo "Committed as commit $commit_num"
+
+
+

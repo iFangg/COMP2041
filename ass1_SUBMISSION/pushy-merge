@@ -1,0 +1,53 @@
+#!/bin/dash
+
+if ! [ -e ".pushy" ]; then
+    echo "pushy-merge: error: pushy repository directory .pushy not found"
+    exit 1
+fi
+
+no_commits="$(wc -l < ".pushy/.commits/.commit_log")"
+if [ "$no_commits" -eq 0 ]; then
+    echo "pushy-merge: error: this command can not be run until after the first commit"
+    exit 1
+fi
+
+if [ "$#" -ne 3 ]; then
+    echo "usage: pushy-branch <branch|commit> -m message"
+    exit 1
+fi
+
+if [ "$2" != "-m" ]; then
+    echo "usage: pushy-branch <branch|commit> -m message"
+    exit 1
+fi
+
+if echo "$1" | grep -E "^[0-9]+$"; then
+    if ! [ -d ".pushy/.commits/$1" ]; then
+        echo "pushy-merge: error: unknown commit 'commit'"
+        exit 1
+    fi
+
+    for file in .pushy/.commits/"$1"/*;
+    do
+        cp "$file" ".pushy/"
+    done
+else
+    if ! [ -d ".pushy/.branches/$1" ]; then
+        echo "pushy-merge: error: unknown branch '$1'"
+        exit 1
+    fi
+
+    curr_branch="$(find ".pushy/.branches/.curr/" | sed -E "s/.pushy\/.branches\/.curr\/?//" | grep -E "[a-zA-Z]" | sed -E "s/(.*)\/.*$/\1/" | head -1)"
+    if [ "$1" = "$curr_branch" ]; then
+        echo "Already up to date"
+        exit 0
+    fi
+    
+    for file in .pushy/.branches/.curr/"$curr_branch"/*;
+    do
+        cp "$file" ".pushy/.branches/$1"
+    done
+    echo "Fast-forward: no commit created"
+fi
+
+

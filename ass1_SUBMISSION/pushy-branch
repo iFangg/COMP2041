@@ -1,0 +1,75 @@
+#!/bin/dash
+
+if ! [ -e ".pushy" ]; then
+    echo "pushy-branch: error: pushy repository directory .pushy not found"
+    exit 1
+fi
+
+no_commits="$(wc -l < ".pushy/.commits/.commit_log")"
+if [ "$no_commits" -eq 0 ]; then
+    echo "pushy-branch: error: this command can not be run until after the first commit"
+    exit 1
+fi
+
+if [ "$#" -gt 2 ] || { [ "$#" -eq 2 ] && [ "$1" != "-d" ]; }; then
+    echo "usage: pushy-branch [-d] <branch>"
+    exit 1
+fi
+
+if [ "$#" -eq 0 ]; then
+    for branches in .pushy/.branches/*;
+    do
+        branch_name="$(echo "$branches" | sed -E "s/.*\///")"
+        echo "$branch_name"
+    done
+
+    exit 0
+fi
+
+
+curr_branch="$(find ".pushy/.branches/.curr/" | sed -E "s/.pushy\/.branches\/.curr\/?//" | grep -E "[a-zA-Z]" | sed -E "s/(.*)\/.*$/\1/" | head -1)"
+# cwd="$(pwd)"
+if [ "$#" -eq 1 ]; then
+    if echo "$1" | grep -E "^[0-9]+$"; then
+        echo "pushy-branch: error: invalid branch name '$1'"
+        exit 1
+    fi
+
+    if [ -d ".pushy/.branches/$1" ]; then
+        echo "pushy-branch: error: branch '$1' already exists"
+        exit 1
+    fi
+
+    mkdir ".pushy/.branches/$1"
+    # mkdir ".pushy/.commits/.$1"
+    # touch ".pushy/.commits/.$1/.commit_log"
+    for file in .pushy/.branches/.curr/"$curr_branch"/*;
+    do
+        # name="$(echo "$file" | sed -E "s/.pushy\/.branches\/.curr\/$curr_branch\///")"
+        if ! echo "$file" | grep -q -E "\*"; then
+            cp -r "$file" ".pushy/.branches/$1"
+        fi
+    done
+    
+    exit 0
+fi
+
+if [ "$#" -eq 2 ]; then
+    if [ "$2" = "master" ]; then
+        echo "pushy-branch: error: can not delete branch 'master': default branch"
+        exit 1
+    fi
+
+    if [ "$2" = "$curr_branch" ]; then
+        echo "pushy-branch: error: can not delete branch '$2': current branch"
+        exit 1
+    fi
+
+    if ! [ -d ".pushy/.branches/$2" ]; then
+        echo "pushy-branch: error: branch 'b1' doesn't exist"
+        exit 1
+    fi
+
+    rm -rf ".pushy/.branches/$2"
+    echo "Deleted branch '$2'"
+fi

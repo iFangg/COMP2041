@@ -1,0 +1,8 @@
+#!/bin/dash
+
+for file in "$@";
+do
+    echo "aDel - $file" >> ".pushy/.index/.log"
+    rm "$file"
+done
+

@@ -1,0 +1,13 @@
+#!/bin/dash
+
+for file in "$@";
+do
+    if [ -f ".pushy/.index/$file" ]; then
+        echo "aDin - $file" >> ".pushy/.index/.log"
+        rm ".pushy/.index/$file"
+        rm ".pushy/.index/.tracking/$file"
+    elif [ -f ".pushy/.index/.tracking/$file" ]; then
+        echo "aDin - $file" >> ".pushy/.index/.log"
+        rm ".pushy/.index/.tracking/$file"
+    fi
+done

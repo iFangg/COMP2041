@@ -1,0 +1,84 @@
+#!/bin/dash
+
+if ! [ -e ".pushy" ]; then
+    echo "pushy-status: error: pushy repository directory .pushy not found"
+    exit 1
+fi
+
+if [ "$#" -gt 0 ]; then
+    echo "usage: pushy-init"
+    exit 1
+fi
+
+cwd="$(pwd)"
+for file in .pushy/*
+do
+    name="$(echo "$file" | sed -E "s/\.pushy\///")"
+    status=""
+    if ! [ -f "$cwd/$name" ]; then
+        if [ -f ".pushy/.index/$name" ]; then
+            status="added to index, file deleted"
+        elif grep -q -E "^aDin - $name$" ".pushy/.index/.log" && ! grep -q -E "^aDel - $name$" ".pushy/.index/.log"; then
+            status="deleted from index"
+        elif grep -q -E "^aDel - $name$" ".pushy/.index/.log"; then
+            status="file deleted, deleted from index"
+        else
+            status="file deleted"
+        fi
+    else
+        if [ -f ".pushy/.index/$name" ]; then
+            if diff "$cwd/$name" ".pushy/.index/$name" >/dev/null && ! diff "$cwd/$name" "$file" >/dev/null; then
+                status="file changed, changes staged for commit"
+            elif ! diff "$cwd/$name" ".pushy/.index/$name" >/dev/null; then
+                if diff "$cwd/$name" ".pushy/$name" >/dev/null; then
+                    status="file changed, changes not staged for commit"
+                else
+                    status="file changed, different changes staged for commit"
+                fi
+            fi
+        else
+           if grep -q -E "^aDin - $name$" ".pushy/.index/.log" && grep -q -E "^aDel - $name$" ".pushy/.index/.log"; then
+                status="file deleted, deleted from index"
+            elif grep -q -E "^aDin - $name$" ".pushy/.index/.log"; then
+                status="deleted from index" 
+            elif diff "$cwd/$file" "$name" >/dev/null; then 
+                status="same as repo"
+            else
+                status="file changed, changes not staged for commit"
+            fi
+        fi
+    fi
+
+    if ! echo "$name" | grep -q -E "\*"; then
+        echo "$name - $status"
+    fi
+done
+
+for file in *
+do
+    status=""
+    if ! [ -f ".pushy/$file" ] && [ -f ".pushy/.index/$file" ]; then
+        if diff "$file" ".pushy/.index/$file" >/dev/null; then
+            status="added to index"
+        else
+            status="added to index, file changed"
+        fi
+    elif ! [ -f ".pushy/$file" ] && ! [ -f ".pushy/.index/$file" ] && ! [ -f ".pushy/.index/.tracking/$file" ]; then
+        status="untracked"
+    fi
+
+    if ! [ -f ".pushy/$file" ] && ! echo "$file" | grep -q -E "\*"; then
+        echo "$file - $status"
+    fi
+done
+
+if find ".pushy/.index" | sed -E "s/^\.pushy\/\.index\/?//" | grep -q -E "^[^.]"; then
+    for file in .pushy/.index/*;
+    do
+        name="$(echo "$file" | sed -E "s/\.pushy\/\.index\/?//")"
+        if ! [ -f ".pushy/$name" ] && ! [ -f "$cwd/$name" ]; then
+            echo "$name - added to index, file deleted"
+        fi
+    done
+fi
+

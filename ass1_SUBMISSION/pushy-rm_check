@@ -1,0 +1,30 @@
+#!/bin/dash
+
+status="$1"
+shift 1
+
+for file in "$@";
+do
+    if { ! [ -f ".pushy/.index/$file" ] && ! [ -f ".pushy/.index/.tracking/$file" ]; } || ! [ -f "$file" ]; then
+        echo "pushy-rm: error: '$file' is not in the pushy repository"
+        exit 1
+    elif [ "$status" = "--force" ] || [ "$status" = "--fcached" ]; then
+        exit 0
+    fi
+
+    if [ -f ".pushy/.index/$file" ]; then
+        if { [ "$status" != "--force" ] || [ "$status" = "--fcached" ]; } && [ -f ".pushy/$file" ] && { ! diff ".pushy/.index/$file" ".pushy/$file" > /dev/null && ! diff ".pushy/.index/$file" "$file" >/dev/null; }; then
+            echo "pushy-rm: error: '$file' in index is different to both the working file and the repository"
+            exit 1
+        fi
+    fi
+
+    if [ -f ".pushy/.index/$file" ] && [ "$status" = "normal" ]; then
+        echo "pushy-rm: error: '$file' has staged changes in the index"
+        exit 1
+    elif [ "$status" = "normal" ] && [ -f ".pushy/$file" ] && ! diff "$file" ".pushy/$file" >/dev/null; then
+        echo "pushy-rm: error: '$file' in the repository is different to the working file"
+        exit 1
+    fi
+done
+

@@ -1,0 +1,17 @@
+#!/bin/dash
+
+for file in "$@";
+do
+    if ! [ -f ".pushy/$file" ]; then
+        echo "pushy-rm: error: '$file' is not in the pushy repository"
+        continue
+    else
+        if diff "$file" ".pushy/$file"; then
+            rm "$file"
+        else
+            echo "pushy-rm: error: '$file' in the repository is different to the working file"
+            continue
+        fi
+    fi
+done
+

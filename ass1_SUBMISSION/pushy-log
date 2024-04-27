@@ -1,0 +1,14 @@
+#!/bin/dash
+
+if ! [ -e ".pushy" ]; then
+    echo "pushy-log: error: pushy repository directory .pushy not found"
+    exit 1
+fi
+
+if [ "$#" -gt 0 ]; then
+    echo "usage: pushy-log"
+    exit 1
+fi
+
+cat ".pushy/.commits/.commit_log"
+

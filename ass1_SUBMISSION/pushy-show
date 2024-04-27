@@ -1,0 +1,40 @@
+#!/bin/dash
+
+if ! [ -e ".pushy" ]; then
+    echo "pushy-show: error: pushy repository directory .pushy not found"
+    exit 1
+fi
+
+if [ "$#" -ne 1 ] || ! echo "$1" | grep -q -E ":"; then
+    echo "usage: pushy-show <commit>:<filename>"
+    exit 1
+fi
+
+if echo "$1" | grep -q -E '^[-_.a-zA-Z0-9]+:'; then
+    commit_err="$(echo "$1" | sed -E "s/\:.*$//")"
+    if ! [ -d ".pushy/.commits/$commit_err" ]; then
+        echo "pushy-show: error: unknown commit '$commit_err'"
+        exit 1
+    fi
+fi
+
+
+commit="$(echo "$1" | sed -E 's/:.*$//')"
+file="$(echo "$1" | sed -E 's/.*://')"
+if echo "$1" | grep -Eq "[0-9]+:"; then
+    if ! [ -f ".pushy/.commits/$commit/$file" ]; then
+        echo "pushy-show: error: '$file' not found in commit $commit"
+        exit 1
+    fi
+    
+    cat ".pushy/.commits/$commit/$file"
+    exit 0
+fi
+
+if ! [ -f ".pushy/.index/.tracking/$file" ]; then
+    echo "pushy-show: error: '$file' not found in index"
+elif ! [ -f ".pushy/.index/$file" ]; then
+    cat ".pushy/.index/.tracking/$file"
+else
+    cat ".pushy/.index/$file"
+fi

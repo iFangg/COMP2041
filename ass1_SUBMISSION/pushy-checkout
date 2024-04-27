@@ -1,0 +1,63 @@
+#!/bin/dash
+
+if ! [ -e ".pushy" ]; then
+    echo "pushy-checkout: error: pushy repository directory .pushy not found"
+    exit 1
+fi
+
+no_commits="$(wc -l < ".pushy/.commits/.commit_log")"
+if [ "$no_commits" -eq 0 ]; then
+    echo "pushy-checkout: error: this command can not be run until after the first commit"
+    exit 1
+fi
+
+if [ "$#" -ne 1 ]; then
+    echo "usage: pushy-checkout <branch>"
+    exit 1
+fi
+
+if ! [ -d ".pushy/.branches/$1" ]; then
+    echo "pushy-checkout: error: unknown branch '$1'"
+    exit 1
+fi
+
+
+curr_branch="$(find ".pushy/.branches/.curr/" | sed -E "s/.pushy\/.branches\/.curr\/?//" | grep -E "[a-zA-Z]" | sed -E "s/(.*)\/.*$/\1/" | head -1)"
+if [ "$curr_branch" = "$1" ]; then
+    echo "Already on '$1'"
+    exit 0
+fi
+
+cwd="$(pwd)"
+cp -r ".pushy/.branches/.curr/$curr_branch" ".pushy/.branches"
+rm -rf ".pushy/.branches/.curr/$curr_branch"
+cp -r ".pushy/.branches/$1" ".pushy/.branches/.curr/"
+
+for file in .pushy/*;
+do
+    name="$(echo "$file" | sed -E "s/\.pushy\///")"
+    if ! echo "$file" | grep -q -E "\*"; then
+        rm "$file"
+        if ! [ -f ".pushy/.branches/$1/$name" ]; then
+            rm "$cwd/$name"
+        fi
+    fi
+done
+
+for file in .pushy/.branches/"$1"/*;
+do
+    name="$(echo "$file" | sed -E "s/.pushy\/.branches\/$1//")"
+    if ! echo "$file" | grep -q -E "\*"; then
+        cp -r "$file" ".pushy"
+        # if doesn't exist in cwd, copy it over
+        # if it does exist, take most recent commit from target branch
+        cp -r "$file" "$cwd/$name"
+        # if ! [ -f "$cwd/$name" ]; then
+        # else
+        #     cp -r "$cwd/$name" "$file"
+        # fi
+    fi
+done
+
+echo "Switched to branch '$1'"
+exit 0

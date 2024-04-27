@@ -1,0 +1,36 @@
+#!/bin/dash
+
+if [ "$#" -lt 1 ]; then
+    echo "usage: pushy-add <filenames>"
+    exit 1
+fi
+
+if ! [ -e ".pushy" ]; then
+    echo "pushy-add: error: pushy repository directory .pushy not found"
+    exit 1
+fi
+
+if ! [ -e ".pushy/.index" ]; then
+    mkdir ".pushy/.index"
+fi
+
+for file in "$@";
+do
+    if ! [ -f ".pushy/$file" ] && ! [ -f "$file" ]; then
+        echo "pushy-add: error: can not open '$file'"
+        exit 1
+    fi
+done
+
+for file in "$@"
+do
+    if [ -f "$file" ]; then
+        if { ! [ -f ".pushy/$file" ] || ! diff "$file" ".pushy/$file" >/dev/null; } || ! [ -f ".pushy/.index/.tracking/$file" ]; then 
+            cp "$file" ".pushy/.index/"
+            cp "$file" ".pushy/.index/.tracking"
+        fi
+    elif [ -f ".pushy/$file" ]; then
+        echo "aDel - $file" >> ".pushy/.index/.log"
+    fi
+done
+
