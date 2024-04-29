@@ -1,0 +1,12 @@
+0/03/18 17 Fin whale
+09/01/18 41 Dwarf sperm whale
+31/05/17 33 Blue whale
+18/10/17 32 Pygmy right whale
+22/08/17  4 Pygmy sperm whale
+09/02/18 40 Southern right whale
+28/12/17  3 Sei whale
+18/05/17 38 Dwarf sperm whale
+27/07/17 31 Indo-Pacific humpbacked dolphin
+03/01/18 25 Dwarf sperm whale
+26/07/17 10 Short-finned pilot whale
+26/07/17 99 Short-finned orca whale
